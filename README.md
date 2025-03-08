@@ -47,7 +47,7 @@ Phase A: Lexical and Syntactic Analysis
 
     Checks the syntax of the miniPython code against the defined grammar.
 
-    Execution Commands:
+    Execution Commands (ParserTest2.java can also be used):
   
       javac ParserTest1.java
       java ParserTest1 minipythonexample.py
@@ -69,10 +69,10 @@ Phase B: AST and Semantic Analysis
     
     Performs checks for undeclared variables, function calls, incorrect argument definitions, type mismatches, and other semantic errors.
     
-    Execution Commands:
+    Execution Commands (myvisitor2.java can also be used):
     
-      javac SymplirosiPinakaSymbolon.java
-      java SymplirosiPinakaSymbolon example.py
+      javac myvisitor1.java
+      java myvisitor1 example.py
 
 
 BNF for miniPython: The grammar for miniPython is defined using BNF and includes rules for functions, statements, expressions, comparisons, function calls, and values.
@@ -87,9 +87,9 @@ Files Included:
 
   SableCC Grammar File (minipython.grammar): Defines the grammar for lexical and syntactic analysis.
   
-  Java Test Files: Includes LexerTest1.java, ParserTest1.java, and ASTTest1.java to test lexical analysis, syntactic analysis, and AST construction.
+  Java Test Files: Includes LexerTest1.java, ParserTest1.java (ParserTest2.java), and ASTTest1.java to test lexical analysis, syntactic analysis, and AST construction.
   
-  Symbol Table Implementation (SymplirosiPinakaSymbolon.java): Visitor class for semantic analysis and symbol table construction.
+  Symbol Table Implementation (myvisitor1.java, myvisitor2.java): Visitor class for semantic analysis and symbol table construction.
   
   Generated Directories:
 
