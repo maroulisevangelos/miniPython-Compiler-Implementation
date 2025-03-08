@@ -1,0 +1,226 @@
+Package minipython;	// Δήλωση του πακέτου, συνεπώς και φακέλου, στο οποίο θα τοποθετηθούν τα παραγόμενα αρχεία
+
+Helpers	// Βοηθητικά στοιχεία για τα παρακάτω
+	digit = ['0' .. '9'];
+	letter = ['a' .. 'z']|['A' .. 'Z']; 
+	cr = 13; 
+	lf = 10;
+	all = [0..127]; 
+	eol = lf | cr | cr lf ;
+	not_eol = [all - [cr + [lf +[34+39]]]]; 
+
+Tokens	// Οι λεκτικές μονάδες της λεκτικής ανάλυσης
+	tab = 9;
+	plus = '+';
+	dplus = '++';
+	minus = '-';
+	dminus = '--';
+	mult = '*';
+	dmult = '**';
+	div = '/';
+	mod = '%';
+	as = '=';
+	eq = '==';
+	meq = '-=';
+	deq = '/=';
+	exclam = '!';
+	diff = '!=';
+	dictt = 'dict';
+	def = 'def';
+	logic_plus = '&&';
+	l_par = '(';
+	r_par = ')';
+	l_br = '[';
+	r_br = ']';
+	comma =',';
+	qmark = '?';
+	gqmark = ';';
+	if = 'if';
+	elif = 'elif';
+	else = 'else';
+	while = 'while';
+	for = 'for';
+	print = 'print';
+	return = 'return';
+	assert = 'assert';
+	less = '<';
+	leeq = '<=';
+	great = '>';
+	greq = '>=';
+	len = 'len';
+	max = 'max';
+	min = 'min';
+	not = 'not';
+	and = 'and';
+	or = 'or';
+	true = 'true';
+	semi = ':';
+	false = 'false';
+	none = 'None';
+	quote = '"';
+	in = 'in';
+	fullstop = '.';
+	blank = (' ' | lf | cr);
+	line_comment = '#' not_eol* eol; 
+	number = digit+ | (digit+ '.' digit+);
+	id = letter (letter | digit)*;
+	string = '"'not_eol* '"'| '''not_eol*''';
+
+Ignored Tokens	// Tokens που αγνοούνται, τυπικά τα σχόλια και τα κενά
+	blank, line_comment;
+	
+	
+Productions // Οι κανόνες της γραμματικής της γλώσσας
+	goal = commands* {->New goal([commands])};
+	
+	commands = {func} function {->New commands.func(function)} |
+				{stat} statement {->New commands.stat(statement)};
+				
+	function = def id l_par argument? r_par semi statement {->New function(id,[argument],statement)};
+	
+	argument = id as_value? com_id_as_val* {->New argument(id,[as_value],[com_id_as_val])};
+	
+	com_id_as_val =  comma id as_value? {->New com_id_as_val(id,[as_value])};
+	
+	as_value = as value {->New as_value(value)};
+	
+	statement = {if} tab* if or_comparison semi statement {->New statement.if(or_comparison,statement)} |
+					{while} tab* while or_comparison semi statement {->New statement.while(or_comparison,statement)} |
+					{for} tab* for [f_id]:id in [i_id]:id semi statement {->New statement.for(f_id,i_id,statement)} |
+					{return} tab* return expression {->New statement.return(expression)} |
+					{print} tab* print expression com_exp* {->New statement.print(expression,[com_exp])} |
+					{assign} tab* id as expression {->New statement.assign(id,expression)} |
+					{meq} tab* id meq expression {->New statement.meq(id,expression)} |
+					{deq} tab* id deq expression {->New statement.deq(id,expression)} |
+					{list} tab* id l_br [in_br]:expression r_br as [out_br]:expression {->New statement.list(id,in_br,out_br)} |
+					{assert} tab* assert expression com_exp? {->New statement.assert(expression,[com_exp])} |
+					{func_call} tab* func_call {->New statement.func_call(func_call)} ;
+					
+	expression = {expression_mult} expression_mult {->expression_mult.expression} |
+						{minus} expression minus expression_mult {->New expression.minus(expression,expression_mult.expression)} |
+						{plus} expression plus expression_mult {->New expression.plus(expression,expression_mult.expression)};
+	
+	expression_mult {->expression} = {expression_dmult} expression_dmult {->expression_dmult.expression} |
+						{mod} expression_mult mod expression_dmult {->New expression.mod(expression_mult.expression,expression_dmult.expression)} |
+						{div} expression_mult div expression_dmult {->New expression.div(expression_mult.expression,expression_dmult.expression)} |
+						{mult} expression_mult mult expression_dmult {->New expression.mult(expression_mult.expression,expression_dmult.expression)} ;
+	
+	expression_dmult {->expression} = {postfix_expression} postfix_expression {->postfix_expression.expression} |
+						{dmult} expression_dmult dmult postfix_expression {->New expression.dmult(expression_dmult.expression,postfix_expression.expression)} ;
+						
+	postfix_expression {->expression} = {expression_s} expression_s {->expression_s.expression} |
+							{increase} expression_s dplus {->New expression.increase(expression_s.expression)} |
+							{decrease} expression_s dminus {->New expression.decrease(expression_s.expression)} ;
+	
+	expression_s {->expression} = {expression_f} expression_f {->expression_f.expression} |
+						{list} id l_br expression r_br {->New expression.list(id,expression)} |
+						{br} l_br expression com_exp* r_br {->New expression.br(expression,[com_exp])};
+	
+	expression_f {->expression}= {func_call} func_call {->New expression.func_call(func_call)}|
+						{value} value {->New expression.value(value)} |
+						{id} id {->New expression.id(id)} |
+						{len} len l_par expression r_par {->New expression.len(expression)}|
+						{max} max l_par value com_val* r_par {->New expression.max(value,[com_val])} |
+						{min} min l_par value com_val* r_par {->New expression.min(value,[com_val])} |
+						{par} l_par expression r_par {-> New expression.par(expression)};
+	
+	com_val = comma value {->New com_val(value)};
+	
+	or_comparison {->or_comparison} = {comp} and_comparison {->and_comparison.or_comparison}|
+						{or} or_comparison or and_comparison {->New or_comparison.or(or_comparison,and_comparison.or_comparison)};
+	
+	and_comparison {->or_comparison} = {not} not_comparison {->not_comparison.or_comparison} |
+						{and} and_comparison and not_comparison {->New or_comparison.and(and_comparison.or_comparison,not_comparison.or_comparison)};
+	
+	not_comparison {->or_comparison}= {comp} comparison {-> comparison.or_comparison}|
+						{not} not not_comparison {->New or_comparison.not(not_comparison.or_comparison)};
+	
+	comparison {->or_comparison} = {true} true {->New or_comparison.true()}|
+					 {false} false {->New or_comparison.false()}|
+					 {less} [l_par]:expression less [r_par]:expression {->New or_comparison.less(l_par,r_par)}|
+					 {great}[l_par]:expression great [r_par]:expression {->New or_comparison.great(l_par,r_par)}|
+					 {greq} [l_par]:expression greq [r_par]:expression {->New or_comparison.greq(l_par,r_par)}|
+					 {leeq} [l_par]:expression leeq [r_par]:expression {->New or_comparison.leeq(l_par,r_par)}|
+					 {diff} [l_par]:expression diff [r_par]:expression {->New or_comparison.diff(l_par,r_par)}|
+					 {eq} [l_par]:expression eq [r_par]:expression {->New or_comparison.eq(l_par,r_par)};
+	
+	func_call = id l_par arglist? r_par {->New func_call(id,[arglist])};
+	
+	arglist = expression com_exp* {->New arglist (expression,[com_exp])};
+	
+	com_exp = comma expression {->New com_exp(expression)};
+	
+	value = {method} id fullstop func_call {->New value.method(id,func_call)}|
+				{numb} number {->New value.numb(number) }|
+				{str} string {->New value.str(string)}|
+				{none} none {->New value.none(none)};
+
+
+Abstract Syntax Tree //	Το αφηρημένο συντακτικό δέντρο
+	goal = commands*;
+	
+	commands = {func} function |
+				{stat} statement;
+				
+	function = id argument* statement;
+	
+	argument = id as_value* com_id_as_val*;
+	
+	com_id_as_val =  id as_value*;
+	
+	as_value = value;
+	
+	statement = {if} or_comparison statement |
+					{while} or_comparison statement |
+					{for} [f_id]:id [i_id]:id statement |
+					{return} expression |
+					{print} expression com_exp* |
+					{assign} id expression |
+					{meq} id expression |
+					{deq} id expression |
+					{list} id [in_br]:expression [out_br]:expression |
+					{assert} expression com_exp* |
+					{func_call} func_call;
+					
+	expression = {minus} [l_par]:expression [r_par]:expression |
+						{plus} [l_par]:expression [r_par]:expression |
+						{mod} [l_par]:expression [r_par]:expression |
+						{div} [l_par]:expression [r_par]:expression |
+						{mult} [l_par]:expression [r_par]:expression |
+						{dmult} [l_par]:expression [r_par]:expression |
+						{increase} expression |
+						{decrease} expression |
+						{list} id expression |
+						{br} expression com_exp* |
+						{func_call} func_call |
+						{value} value |
+						{id} id |
+						{len} expression |
+						{max} value com_val* |
+						{min} value com_val* |
+						{par} expression ;
+	
+	com_val = value;
+	
+	or_comparison = {or} [l_par]:or_comparison [r_par]:or_comparison |
+						{and} [l_par]:or_comparison [r_par]:or_comparison |
+						{not} or_comparison |
+						{true} |
+						{false} |
+						{less} [l_par]:expression [r_par]:expression |
+						{great}[l_par]:expression [r_par]:expression |
+						{greq} [l_par]:expression [r_par]:expression |
+						{leeq} [l_par]:expression [r_par]:expression |
+						{diff} [l_par]:expression [r_par]:expression |
+						{eq} [l_par]:expression [r_par]:expression;
+	
+	func_call = id arglist*;
+	
+	arglist = expression com_exp*;
+	
+	com_exp = expression;
+	
+	value = {method} id func_call |
+				{numb} number |
+				{str} string |
+				{none} none;
